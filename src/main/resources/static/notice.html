@@ -1,0 +1,344 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/info-mgt.css" />
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <style>
+        .layui-layer-title{background:url(images/righttitlebig.png) repeat-x;font-weight:bold;color:#46647e; border:1px solid #c1d3de;height: 33px;line-height: 33px;}
+        .tabe_bot label{width: 70px;text-align: right;font-size: 14px;font-weight: 900;color: #46647e}
+        .l_left{float: left}
+        .tabe_bot input,.tabe_bot  select{width: 200px;height: 40px;border-radius: 6px;margin:0 20px 0 0;border: none;border: 1px #ccc solid;font-size: 14px}
+        .tabe_btn{width: 60px;height: 30px;background-color: #68b86c;border: none;border-radius: 6px;color: #fff;margin-top: 5px;margin-left: 20px;}
+        .el-table__header tr,
+        .el-table__header th {
+            padding: 0;
+            height: 40px;
+        }
+        .el-table__body tr,
+        .el-table__body td {
+            padding: 0;
+            height: 40px;
+        }
+    </style>
+    <title>公告管理</title>
+</head>
+
+<body>
+<div id="app">
+    <div class="title"><h2>公告管理</h2></div>
+    <div class="query">
+        <div class="tabe_bot">
+            <div class="l_left"><label>标题：</label><input v-model="inputTitle" type="text" placeholder="请输入标题" id="noticeTit"></div>
+            <div class="l_left"><label>发布人：</label><input type="text" v-model="inputReleaser" placeholder="请输入发布人" id="noticePuer"></div>
+            <div class="l_left"><label>发布时间：</label>
+                <el-date-picker
+                        style="width: 200px"
+                        v-model="inputTime"
+                        align="right"
+                        type="date"
+                        placeholder="选择日期"
+                        :picker-options="pickerOptions">
+                </el-date-picker>
+            </div>
+            <button class="tabe_btn " @click="queryInfoByCondition()">查询</button>
+            <div class="clear"></div>
+        </div>
+    </div>
+    <div class="table-operate ue-clear">
+        <a href="#" class="add" onclick="addNotice()">添加</a>
+        <a href="#" class="del" @click="deleteNoticeInfo">删除</a>
+    </div>
+
+    <el-table
+            :data="tableData.slice((currentPage-1)*PageSize,currentPage*PageSize)"
+            border
+            :cell-class-name="tableCellClassName"
+            @cell-click="setContent"
+            style="width: 100%"
+            @selection-change="handleSelectionChange">
+
+        <el-table-column
+                type="selection"
+                width="55">
+        </el-table-column>
+
+        <el-table-column
+                prop="nid"
+                label="编号"
+                width="100">
+        </el-table-column>
+        <el-table-column
+                prop="title"
+                label="标题">
+        </el-table-column>
+        <el-table-column
+                prop="content"
+                label="内容">
+
+            <el-button @click="drawer = true" type="primary" style="padding: 10px;width: 80px;margin-left: 16px;height: 30px;">
+                查看详情
+            </el-button>
+
+        </el-table-column>
+        <el-table-column
+                prop="createTime"
+                label="发布时间">
+        </el-table-column>
+        <el-table-column
+                prop="releaser"
+                label="发布人">
+        </el-table-column>
+    </el-table>
+
+    <el-drawer
+            size="600px"
+            :title="noticeTitle"
+            :visible.sync="drawer"
+            :direction="direction">
+        <div style="margin-left: 20px" v-html="noticeContent">
+            {{noticeContent}}
+        </div>
+        <div style="position: absolute;bottom: 10px;left: 40%;">
+            <el-button type="info" @click="editNotice">修改</el-button>
+            <el-button type="danger" @click="deleteNoticeInfo">删除</el-button>
+        </div>
+    </el-drawer>
+
+    <el-pagination @size-change="handleSizeChange"
+                   style="float: right;margin: 20px;"
+                   @current-change="handleCurrentChange"
+                   :current-page="currentPage"
+                   :page-sizes="pageSizes"
+                   :page-size="PageSize" layout="total, sizes, prev, pager, next, jumper"
+                   :total="totalCount">
+    </el-pagination>
+</div>
+
+</body>
+<script type="text/javascript" src="js/jquery.js"></script>
+
+<script src="js/bootstrap.min.js"></script>
+<script src="js/bootstrap-table.js"></script>
+<script src="js/bootstrap-table-zh-CN.min.js"></script>
+<script src="js/layer_v2.1/layer/layer.js"></script>
+<script src="https://unpkg.com/vue/dist/vue.js"></script>
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<script src="js/notice.js"></script>
+<script>
+    const app = new Vue({
+        el: '#app',
+        data: {
+            drawer: false,
+            direction: 'rtl',
+            noticeId:"",
+            noticeContent:"",
+            noticeTitle:"",
+            inputTitle:"",
+            inputReleaser:"",
+            inputTime:"",
+            currentPage:1,
+            PageSize:7,// 默认每页显示的条数（可修改）
+            totalCount:1,
+            pageSizes:[7,10],// 个数选择器（可修改）
+            tableData:[],
+            multipleSelection:[],
+            NidList:[],
+            pickerOptions: {
+                disabledDate(time) {
+                    return time.getTime() > Date.now();
+                },
+                shortcuts: [{
+                    text: '今天',
+                    onClick(picker) {
+                        picker.$emit('pick', new Date());
+                    }
+                }, {
+                    text: '昨天',
+                    onClick(picker) {
+                        const date = new Date();
+                        date.setTime(date.getTime() - 3600 * 1000 * 24);
+                        picker.$emit('pick', date);
+                    }
+                }, {
+                    text: '一周前',
+                    onClick(picker) {
+                        const date = new Date();
+                        date.setTime(date.getTime() - 3600 * 1000 * 24 * 7);
+                        picker.$emit('pick', date);
+                    }
+                }]
+            }
+        },
+        mounted:
+            function(){
+                var that = this;
+                axios.get('/queryAllNoticeInfo')
+                    .then((response) => {
+                        if(response.data.code == 1){
+                            that.tableData = response.data.data;
+                            that.totalCount = that.tableData.length;
+                        }else{
+                            alert(response.data.msg)
+                        }
+
+                    })
+            },
+        methods:{
+            dateFtt(fmt,date){
+                var o = {
+                    "M+" : date.getMonth()+1,     //月份
+                    "d+" : date.getDate(),     //日
+                    "h+" : date.getHours(),     //小时
+                    "m+" : date.getMinutes(),     //分
+                    "s+" : date.getSeconds(),     //秒
+                    "q+" : Math.floor((date.getMonth()+3)/3), //季度
+                    "S" : date.getMilliseconds()    //毫秒
+                };
+                if(/(y+)/.test(fmt))
+                    fmt=fmt.replace(RegExp.$1, (date.getFullYear()+"").substr(4 - RegExp.$1.length));
+                for(var k in o)
+                    if(new RegExp("("+ k +")").test(fmt))
+                        fmt = fmt.replace(RegExp.$1, (RegExp.$1.length==1) ? (o[k]) : (("00"+ o[k]).substr((""+ o[k]).length)));
+                return fmt;
+            },
+            tableCellClassName({row, column, rowIndex, columnIndex}){
+                //注意这里是解构
+                //利用单元格的 className 的回调方法，给行列索引赋值
+                row.index=rowIndex;
+                column.index=columnIndex;
+            },
+            setContent(row,column,event,cell){
+                this.noticeContent = this.tableData[row.index].content
+                this.noticeTitle = this.tableData[row.index].title
+                this.noticeId = this.tableData[row.index].nid
+            },
+            handleSizeChange(val) {
+                // 改变每页显示的条数
+                this.PageSize=val
+                // 注意：在改变每页显示的条数时，要将页码显示到第一页
+                this.currentPage=1
+            },
+            // 显示第几页
+            handleCurrentChange(val) {
+                // 改变默认的页数
+                this.currentPage=val
+            },
+            handleSelectionChange(val) {
+                var that = this
+                this.multipleSelection = val;
+                this.multipleSelection.forEach(function (value, index, array) {
+                    that.NidList.push(value.nid)
+                })
+            },
+            deleteNoticeInfo(){
+                let nidList = this.NidList
+                if(this.noticeId != ""){
+                    nidList.push(this.noticeId)
+                }
+                $.ajax({
+                    url: '/deleteNoticeInfo',
+                    type: 'DELETE',
+                    data:{
+                        nidList:nidList,
+                    },
+                    traditional:true,
+                    dataType: 'json',
+                    success: function (result) {
+                        if (result.code == 1) {
+                            alert("删除成功！")
+                            window.location.reload();
+                        } else {
+                            alert(result.msg)
+                        }
+                    },
+                    error: function (err) {
+                    }
+                });
+            },
+            queryInfoByCondition(){
+                if(this.inputTitle == "" && this.inputReleaser == "" && (this.inputTime == "" || this.inputTime == null)){
+                    alert("请输入查询条件")
+                    return;
+                }
+                var showNoticeInfos = [];
+                var inputTitle = this.inputTitle
+                var inputReleaser = this.inputReleaser
+                var inputTime = this.inputTime
+                if(inputTime != ""){
+                    if(inputTime == null){
+                        inputTime =""
+                    }else
+                    {
+                        inputTime = this.dateFtt("yyyy-MM-dd",inputTime);
+                    }
+                }
+                if(inputTitle != "" && inputReleaser == "" && inputTime == ""){
+                    this.tableData.forEach(function (val,index,arr)
+                    {
+                        if(val.title.includes(inputTitle))
+                            showNoticeInfos.push(val)
+                    })
+                }else if(inputTitle == "" && inputReleaser != "" && inputTime == ""){
+                    this.tableData.forEach(function (val,index,arr)
+                    {
+                        if(val.releaser.includes(inputReleaser))
+                            showNoticeInfos.push(val);
+                    })
+                }else if(inputTitle == "" && inputReleaser == "" && inputTime != ""){
+                    this.tableData.forEach(function (val,index,arr)
+                    {
+                        if(val.createTime == inputTime)
+                            showNoticeInfos.push(val);
+                    })
+                }else if(inputTitle != "" && inputReleaser != "" && inputTime == ""){
+                    this.tableData.forEach(function (val,index,arr)
+                    {
+                        if(val.title.includes(inputTitle) && val.releaser.includes(inputReleaser))
+                            showNoticeInfos.push(val);
+                    })
+                }else if(inputTitle != "" && inputReleaser == "" && inputTime != ""){
+                    this.tableData.forEach(function (val,index,arr)
+                    {
+                        if(val.title.includes(inputTitle) && val.createTime == inputTime)
+                            showNoticeInfos.push(val);
+                    })
+                }else if(inputTitle == "" && inputReleaser != "" && inputTime != ""){
+                    this.tableData.forEach(function (val,index,arr)
+                    {
+                        if(val.releaser.includes(inputReleaser) && val.createTime == inputTime)
+                            showNoticeInfos.push(val);
+                    })
+                }else{
+                    this.tableData.forEach(function (val,index,arr)
+                    {
+                        if(val.releaser.includes(inputReleaser) && val.createTime == inputTime && val.title.includes(inputTitle))
+                            showNoticeInfos.push(val);
+                    })
+                }
+                this.tableData = showNoticeInfos;
+            },
+            editNotice(){
+                window.nid = this.noticeId
+                window.title = this.noticeTitle
+                window.content = this.noticeContent
+                layer.open({
+                    type: 2,
+                    title: '公告信息',
+                    shadeClose: true,
+                    shade: 0.5,
+                    skin: 'layui-layer-rim',
+                    closeBtn: 2,
+                    area: ['98%', '85%'],
+                    shadeClose: true,
+                    closeBtn: 2,
+                    content: 'notice_change.html'
+
+                });
+            }
+        }
+    });
+</script>
+</html>

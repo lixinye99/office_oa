@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <title>每日考勤</title>
+    <style>
+        .is-selected {
+            color: #1989FA;
+        }
+        .el-calendar-table .el-calendar-day{
+            height: 60px;
+        }
+        .infinite-list{
+            margin-left: -70px;
+        }
+        .block{
+            height: 500px;
+            overflow:auto;
+         }
+        .block::-webkit-scrollbar {
+            display: none;
+        }
+        span img{
+            float: right;
+            padding-right: 40px;
+        }
+    </style>
+</head>
+<body>
+<div id="attendance">
+
+    <el-container>
+        <el-header style="height: 40px">
+            <el-button type="primary" plain @click="workClock">上班打卡</el-button>
+            <el-button type="primary" plain @click="leaveClock">下班打卡</el-button>
+        </el-header>
+
+        <el-main>
+            <el-row :gutter="10">
+                <el-col :span="16">
+                    <el-calendar v-model="value">
+                        <!-- 这里使用的是 2.5 slot 语法，对于新项目请使用 2.6 slot 语法-->
+                        <template
+                                slot="dateCell"
+                                slot-scope="{date,data}"
+                                >
+                            <p>
+                                <!--显示日期-->
+                                <span>
+                                    {{ data.day.split('-').slice(1).join('-')}}
+                                    <!--显示当月的考勤情况-->
+                                    <span v-if="nowMonth <= data.day.split('-').slice(0).join('') && data.day.split('-').slice(0).join('') <= nowTime">
+                                        <span v-for="date in myDate" v-if="date.createTime == data.day">
+                                            <span v-if="date.type == '未打卡'">❌️</span>
+                                            <span v-if="date.type == '正常'"><img src="images/normal.png"></span>
+                                            <span v-if="date.type == '迟到'"><img src="images/late.png"></span>
+                                            <span v-if="date.type == '早退'"><img src="images/leave_early.png"></span>
+                                            <span v-if="date.type == '迟到并早退'"><img src="images/both.png"></span>
+                                        </span>
+                                    </span>
+                                </span>
+
+
+                            </p>
+                        </template>
+                    </el-calendar>
+                </el-col>
+
+                <el-col :span="8">
+                        <div class="block">
+                            <ul class="infinite-list"
+                                style="width: 450px"
+                                v-infinite-scroll="load"
+                                infinite-scroll-disabled="disabled">
+                                <el-timeline>
+                                    <el-timeline-item v-for="item in showList" :timestamp="item.time" placement="top">
+                                        <el-card>
+                                            <h4>{{item.time}}</h4>
+                                            <p>{{item.msg}}</p>
+                                        </el-card>
+                                    </el-timeline-item>
+                                    <p v-if="loading">加载中...</p>
+                                    <p v-if="noMore">没有更多了</p>
+                                </el-timeline>
+                            </ul>
+                        </div>
+
+                </el-col>
+            </el-row>
+        </el-main>
+    </el-container>
+
+
+</div>
+</body>
+<script src="https://unpkg.com/vue/dist/vue.js"></script>
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.0.2/dist/echarts.min.js"></script>
+<script type="text/javascript">
+</script>
+<script>
+    const  app = new Vue({
+        el: '#attendance',
+        data:{
+            value:"",
+            loading:false,
+            nowTime:"",
+            nowMonth:"",
+            workTime:"",
+            leaveTime:"",
+            myDate:[
+                {
+                   createTime:"2021-03-24",
+                    type:"早退"
+                },
+                {
+                    createTime:"2021-03-23",
+                    type:"迟到"
+                },
+                {
+                    createTime:"2021-03-22",
+                    type:"迟到并早退"
+                },
+                {
+                    createTime:"2021-03-21",
+                    type:"未打卡"
+                },
+                {
+                    createTime:"2021-03-20",
+                    type:"正常"
+                },
+            ],
+            showList:[
+                {
+                time:"2018/04/12",
+                msg:"王小虎 提交于 2018/4/12 20:46"
+                },
+                {
+                    time:"2018/04/12",
+                    msg:"王小虎 提交于 2018/4/12 20:46"
+                },
+                {
+                    time:"2018/04/12",
+                    msg:"王小虎 提交于 2018/4/12 20:46"
+                },],
+            itemList:[
+                {
+                    time:"2018/04/12",
+                    msg:"王小虎 提交于 2018/4/12 20:46"
+                },
+                {
+                    time:"2018/04/12",
+                    msg:"王小虎 提交于 2018/4/12 20:46"
+                },
+                {
+                    time:"2018/04/12",
+                    msg:"王小虎 提交于 2018/4/12 20:46"
+                },
+                {
+                    time:"2018/04/12",
+                    msg:"王小虎 提交于 2018/4/12 20:46"
+                },
+                {
+                    time:"2018/04/12",
+                    msg:"王小虎 提交于 2018/4/12 20:46"
+                },
+                {
+                    time:"2018/04/12",
+                    msg:"王小虎 提交于 2018/4/12 20:46"
+                },
+                {
+                    time:"2018/04/12",
+                    msg:"王小虎 提交于 2018/4/12 20:46"
+                },
+            ],
+        },
+        mounted:
+            function(){
+                let date = new Date();
+                let y = date.getFullYear();
+                let MM = date.getMonth() + 1;
+                MM = MM < 10 ? "0" + MM : MM;
+                let d = date.getDate();
+                d = d < 10 ? "0" + d : d;
+                let h = date.getHours();
+                h = h < 10 ? "0" + h : h;
+                let m = date.getMinutes();
+                m = m < 10 ? "0" + m : m;
+                let s = date.getSeconds();
+                s = s < 10 ? "0" + s : s;
+                this.nowTime = ""+y + MM + d ;
+                this.nowMonth = ""+y+MM+"01";
+                this.$nextTick(() => {
+                    // 点击前一个月
+                    let prevBtn = document.querySelector(
+                        '.el-calendar__button-group .el-button-group>button:nth-child(1)');
+                    prevBtn.addEventListener('click', () => {
+                        this.getAttendanceInfoInThisMonth(this.getFullYear(),this.value.getMonth()+1);
+                    })
+                })
+
+                this.$nextTick(() => {
+                    // 点击今天
+                    let prevBtn = document.querySelector(
+                        '.el-calendar__button-group .el-button-group>button:nth-child(2)');
+                    prevBtn.addEventListener('click', () => {
+                        this.getAttendanceInfoInThisMonth(this.getFullYear(),this.value.getMonth()+1);
+                    })
+                })
+
+                this.$nextTick(() => {
+                    // 点击后一个月
+                    let prevBtn = document.querySelector(
+                        '.el-calendar__button-group .el-button-group>button:nth-child(3)');
+                    prevBtn.addEventListener('click', () => {
+                        this.getAttendanceInfoInThisMonth(this.getFullYear(),this.value.getMonth()+1);
+                    })
+                })
+        },
+        computed: {
+            noMore () {
+                return this.itemList.length === 0
+            },
+            disabled () {
+                return this.loading || this.noMore
+            }
+        },
+        methods: {
+            load() {
+                this.loading = true
+                setTimeout(() => {
+                    this.showList.push(this.itemList.pop())
+                    this.loading = false
+                }, 2000)
+            },
+            workClock(){
+                this.workTime = this.common();
+                var params = new URLSearchParams()
+                params.append("workTime",this.workTime);
+                axios.post("/insertAttendanceInfo",params)
+                    .then(function (response) {
+                        if(response.data.code == 1){
+                            alert("上班打卡成功");
+                        }else{
+                            alert(response.data.msg)
+                        }
+                })
+            },
+            leaveClock(){
+                this.leaveTime = this.common();
+                var params = new URLSearchParams()
+                params.append("leaveTime",this.leaveTime);
+                axios.put("/addAttendanceInfoLeaveTime",params)
+                    .then(function (response) {
+                        if(response.data.code == 1){
+                            alert("下班打卡成功");
+                        }else{
+                            alert(response.data.msg)
+                        }
+                    })
+            },
+            common(){
+                let date = new Date();
+                let y = date.getFullYear();
+                let MM = date.getMonth() + 1;
+                MM = MM < 10 ? "0" + MM : MM;
+                let d = date.getDate();
+                d = d < 10 ? "0" + d : d;
+                let h = date.getHours();
+                h = h < 10 ? "0" + h : h;
+                let m = date.getMinutes();
+                m = m < 10 ? "0" + m : m;
+                let s = date.getSeconds();
+                s = s < 10 ? "0" + s : s;
+                return ""+h+m+s;
+            },
+            getAttendanceInfoInThisMonth(year,month){
+                axios.get("/queryAttendInfoByMonth",{
+                    params:{
+                        year:year,
+                        month:month
+                    }
+                }).then(function () {
+
+                })
+            }
+        },
+    })
+</script>
+</html>

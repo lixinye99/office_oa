@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="utf-8">
+    <link href="css/bootstrap.min.css" rel="stylesheet" type="text/css">
+    <link href="css/bootstrap-table.css" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/info-mgt.css" />
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <style>
+        .layui-layer-title{background:url(images/righttitlebig.png) repeat-x;font-weight:bold;color:#46647e; border:1px solid #c1d3de;height: 33px;line-height: 33px;}
+        .tabe_bot label{width: 70px;text-align: right;font-size: 14px;font-weight: 900;color: #46647e}
+        .l_left{float: left}
+        .tabe_bot input,.tabe_bot  select{width: 200px;height: 40px;border-radius: 6px;margin:0 20px 0 0;border: none;border: 1px #ccc solid;font-size: 14px}
+        .tabe_btn{width: 60px;height: 30px;background-color: #68b86c;border: none;border-radius: 6px;color: #fff;margin-top: 5px;margin-left: 20px;}
+    </style>
+    <title>我的请假</title>
+</head>
+
+<body>
+<div id="app">
+<div class="title"><h2>我的审核</h2></div>
+<div class="query">
+    <div class="tabe_bot">
+        <div class="l_left"><label>申请人：</label><input type="text" v-model="postUser" placeholder="请输入申请人" id="person"></div>
+        <div class="l_left"><label>状态：</label><select v-model="infoStatus" id="type">
+            <option selected></option>
+            <option>待审核</option>
+            <option>已通过</option>
+            <option>未通过</option>
+        </select></div>
+        <div class="l_left"><label>申请时间：</label>
+            <el-date-picker
+                style="width: 200px"
+                v-model="value2"
+                align="right"
+                type="date"
+                placeholder="选择日期"
+                :picker-options="pickerOptions">
+            </el-date-picker>
+        </div>
+        <button class="tabe_btn " @click="queryLeaveInfoByCondition">查询</button>
+        <div class="clear"></div>
+    </div>
+</div>
+<div class="table-operate ue-clear">
+    <a href="#" class="pass" onclick="examine(this)">全部通过</a>
+    <a href="#" class="nopass" onclick="examine(this)">全部不通过</a>
+</div>
+<div class="table-box">
+    <table id="table" class="table_style">
+    </table>
+</div>
+</div>
+</body>
+<script type="text/javascript" src="js/jquery.js"></script>
+<script src="js/bootstrap.min.js"></script>
+<script src="js/bootstrap-table.js"></script>
+<script src="js/bootstrap-table-zh-CN.min.js"></script>
+<script src="js/date/js/laydate.js"></script>
+<script src="js/myleave.js"></script>
+<script src="https://unpkg.com/vue/dist/vue.js"></script>
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<script>
+    !function(){
+        laydate.skin('molv');//切换皮肤，请查看skins下面皮肤库
+        laydate({elem: '#demo'});//绑定元素
+    }();
+</script>
+<script src="js/layer_v2.1/layer/layer.js"></script>
+<script>
+    const app = new Vue({
+        el: '#app',
+        data: {
+            value2:"",
+            flag:false,
+            postUser:"",
+            infoStatus:"",
+            dataForm:[
+                {
+                    checkbox:"true",
+                    field: 'ID',
+                    align: 'center',
+                    valign: 'middle'
+                },
+                {
+                    title: "编号",
+                    field: 'lid',
+                    align: 'center',
+                    valign: 'middle'
+                },
+                {
+                    title: '电请人',
+                    field: 'postUserName',
+                    align: 'center',
+                    valign: 'middle'
+                },
+                {
+                    title: '请假类型',
+                    field: 'leaveType',
+                    align: 'center'
+                },
+                {
+                    title: '请假时间',
+                    field: 'leaveTime',
+                    align: 'center',
+                    valign: 'middle'
+                },
+                {
+                    title: '请假原因',
+                    field: 'leaveReason',
+                    align: 'center',
+                    valign: 'middle'
+                },
+                {
+                    title: '提交时间',
+                    field: 'createTime',
+                    align: 'center',
+                    valign: 'middle'
+                },
+                {
+                    title: '状态',
+                    field: 'status',
+                    align: 'center'
+                },
+                {
+                    title: '操作',
+                    align: 'center',
+                    formatter: function (value, row) {
+                        var e = '<button class="btn btn-danger" onclick="examine(this)">不通过</button> ';
+                        var d = '<button class="btn btn-success" onclick="examine(this)">通过</button> ';
+                        return d + e;
+                    }
+                }
+            ],
+            leaveInfoList:[],
+            pickerOptions: {
+                disabledDate(time) {
+                    return time.getTime() > Date.now();
+                },
+                shortcuts: [{
+                    text: '今天',
+                    onClick(picker) {
+                        picker.$emit('pick', new Date());
+                    }
+                }, {
+                    text: '昨天',
+                    onClick(picker) {
+                        const date = new Date();
+                        date.setTime(date.getTime() - 3600 * 1000 * 24);
+                        picker.$emit('pick', date);
+                    }
+                }, {
+                    text: '一周前',
+                    onClick(picker) {
+                        const date = new Date();
+                        date.setTime(date.getTime() - 3600 * 1000 * 24 * 7);
+                        picker.$emit('pick', date);
+                    }
+                }]
+            },
+
+        },
+        mounted:
+            function(){
+                var that = this;
+               axios.get("/getMyExamineLeaveInfo")
+                   .then(function (response) {
+                       if(response.data.code == 1){
+                           $('#table').bootstrapTable({
+                               method: "get",
+                               striped: true,
+                               singleSelect: false,
+                               dataType: "json",
+                               pagination: true, //分页
+                               pageSize: 10,
+                               pageNumber: 1,
+                               search: false, //显示搜索框
+                               contentType: "application/x-www-form-urlencoded",
+                               queryParams: null,
+                               columns: app.$data.dataForm
+                           });
+                           if(response.data.data != null){
+                               that.leaveInfoList = response.data.data;
+                               $('#table').bootstrapTable("load",app.$data.leaveInfoList);
+                           }else{
+                               alert("暂时没有任何数据");
+                           }
+                       }else{
+                           alert(response.data.msg)
+                       }
+                   })
+        },
+        methods:{
+            dateFtt(fmt,date){
+                    var o = {
+                        "M+" : date.getMonth()+1,     //月份
+                        "d+" : date.getDate(),     //日
+                        "h+" : date.getHours(),     //小时
+                        "m+" : date.getMinutes(),     //分
+                        "s+" : date.getSeconds(),     //秒
+                        "q+" : Math.floor((date.getMonth()+3)/3), //季度
+                        "S" : date.getMilliseconds()    //毫秒
+                    };
+                    if(/(y+)/.test(fmt))
+                        fmt=fmt.replace(RegExp.$1, (date.getFullYear()+"").substr(4 - RegExp.$1.length));
+                    for(var k in o)
+                        if(new RegExp("("+ k +")").test(fmt))
+                            fmt = fmt.replace(RegExp.$1, (RegExp.$1.length==1) ? (o[k]) : (("00"+ o[k]).substr((""+ o[k]).length)));
+                    return fmt;
+            },
+            queryLeaveInfoByCondition(){
+                if(this.postUser == "" && (this.value2 == "" || this.value2 == null) && this.infoStatus == ""){
+                    alert("请输入查询条件")
+                    return;
+                }
+                var showLeaveInfos = [];
+                var value2 = this.value2
+                var postUser = this.postUser
+                var infoStatus = this.infoStatus
+                if(value2 != ""){
+                    if(value2 == null){
+                        value2 = "";
+                    }else{
+                        value2 = this.dateFtt("yyyy-MM-dd",value2);
+                    }
+                }
+                
+                if(postUser != "" && infoStatus == "" && value2 == ""){
+                    this.leaveInfoList.forEach(function (val,index,arr)
+                    {
+                        if(val.postUserName == postUser)
+                            showLeaveInfos.push(val)
+                    })
+                }else if(postUser == "" && infoStatus != "" && value2 == ""){
+                    this.leaveInfoList.forEach(function (val,index,arr)
+                    {
+                        if(val.status == infoStatus)
+                            showLeaveInfos.push(val);
+                    })
+                }else if(postUser == "" && infoStatus == "" && value2 != ""){
+                    this.leaveInfoList.forEach(function (val,index,arr)
+                    {
+                        if(val.createTime == value2)
+                            showLeaveInfos.push(val);
+                    })
+                }else if(postUser != "" && infoStatus != "" && value2 == ""){
+                    this.leaveInfoList.forEach(function (val,index,arr)
+                    {
+                        if(val.postUserName == postUser && val.status == infoStatus)
+                            showLeaveInfos.push(val);
+                    })
+                }else if(postUser != "" && infoStatus == "" && value2 != ""){
+                    this.leaveInfoList.forEach(function (val,index,arr)
+                    {
+                        if(val.postUserName == postUser && val.createTime == value2)
+                            showLeaveInfos.push(val);
+                    })
+                }else if(postUser == "" && infoStatus != "" && value2 != ""){
+                    this.leaveInfoList.forEach(function (val,index,arr)
+                    {
+                        if(val.status == infoStatus && val.createTime == value2)
+                            showLeaveInfos.push(val);
+                    })
+                }else{
+                    this.leaveInfoList.forEach(function (val,index,arr)
+                    {
+                        if(val.status == infoStatus && val.createTime == value2 && val.postUserName == postUser)
+                            showLeaveInfos.push(val);
+                    })
+                }
+                $('#table').bootstrapTable("load",showLeaveInfos);
+            }
+        }
+    })
+</script>
+</html>

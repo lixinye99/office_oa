@@ -1,0 +1,90 @@
+ <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"> 
+<html xmlns="http://www.w3.org/1999/xhtml"> 
+ <head>
+ <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <title>日程安排</title>
+ </head>
+ 
+ <body>
+
+<div id="app">
+    <el-table
+            :data="tableData"
+            height="250"
+            border>
+        <el-table-column
+                prop="date"
+                label="日期\时间"
+                width="180">
+        </el-table-column>
+
+        <el-table-column
+                v-for="myDate in week"
+                :prop="myDate.name"
+                :label="myDate.date"
+                width="180">
+        </el-table-column>
+
+    </el-table>
+     
+</div>
+<script src="js/schedule/js/jquery.min.js" type="text/javascript"></script>
+<script src="https://unpkg.com/vue/dist/vue.js"></script>
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+ <script>
+     const app = new Vue({
+         el: '#app',
+         data: {
+             week:[],
+             tableData:[
+                 {
+                     date:"00:00-01:00",
+                     num0:"新的时asf间",
+                     num1:"新的时间1",
+                     num2:"新的时间2",
+                     num3:"新的时间3",
+                     num4:"新的时间4",
+                     num5:"新的时间5",
+                     num6:"新的时间6",
+                 },
+             ]
+         },
+         created () {
+
+         },
+         mounted:
+             function(){
+                 let data=[]
+                 for(let i=6;i>=0;i--){
+                     const oneOf = {date:"",name:""}
+                     oneOf.date = this.getWeek(-i);
+                     oneOf.name = "num"+ String(6-i);
+                     data.push(oneOf)
+                 }
+                 this.week=data;
+             },
+         methods: {
+             getWeek (day) {
+                 var today = new Date();
+                 var targetday_milliseconds=today.getTime() + 1000*60*60*24*day;
+                 today.setTime(targetday_milliseconds);
+                 var tMonth = today.getMonth();
+                 var tDate = today.getDate();
+                 tMonth = this.doHandleMonth(tMonth + 1);
+                 tDate =  this.doHandleMonth(tDate);
+                 return tMonth+"-"+tDate;
+             },
+             doHandleMonth(month){
+                 var m = month;
+                 if(month.toString().length == 1){
+                     m = "0" + month;
+                 }
+                 return m;
+             }
+         },
+     });
+ </script>
+ </body>
+</html>

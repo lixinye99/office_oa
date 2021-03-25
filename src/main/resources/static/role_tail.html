@@ -1,0 +1,94 @@
+﻿
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link href="css/zTreeStyle/zTreeStyle.css" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/info-mgt.css" />
+    <link href="css/tail.css" rel="stylesheet" type="text/css" />
+    <style>
+        .tree_left {
+            box-sizing: border-box;
+            overflow-y: auto;
+            width: 100%;
+        }
+
+            .tree_left h6, .tree_right h6 {
+                line-height: 30px;
+                font-weight: bold;
+                padding-left: 6px;
+                color: #000;
+                font-size: 14px;
+            }
+
+        .tree_left_top {
+            margin: 10px 0 0 0;
+        }
+
+        .tree_input input {
+            border: 1px #ccc solid;
+            margin: 3px 0 0 0px;
+            border-radius: 4px;
+        }
+        .bot_btn{width: 150px;height: 30px;margin: 20px 0 0 34%}
+        .bot_btn .btn{width: 60px;height: 30px;background-color: #68b86c;border: none;border-radius: 6px;color: #fff;margin-right: 15px}
+        .bot_btn .btn1{background-color: #c1d3de;border: none;border-radius: 6px;color: #000;margin-right: 0}
+    </style>
+</head>
+<body>
+<div>
+    <form id="role_form">
+        <div class="tree_left l_left">
+            <div class="tree_left_top">
+                <div class="person_Box" style="margin:0 0 10px 20px">
+                    <label style="width:50px;font-size:13px;line-height:34px">角色名称：</label><input type="text" style="margin:0 10px;width:70%;border-radius:4px;height:34px;line-height:34px;border:1px #ccc solid" id="roleName" name="roleName"/>
+                </div>
+                <div class="person_Box" style="margin:0 0 10px 20px">
+                    <label style="width:50px;font-size:13px;line-height:34px">角色简称：</label><input type="text" style="margin:0 10px;width:70%;border-radius:4px;height:34px;line-height:34px;border:1px #ccc solid" id="roleNameZh" name="roleNameZh"/>
+                </div>
+                <div class="person_Box" style="margin:0 0 10px 20px">
+                    <label style="width:50px;font-size:13px;line-height:34px">角色描述：</label><textarea type="text" style="margin:0 10px;width:70%;border-radius:4px;height:100px;line-height:34px;border:1px #ccc solid" id="roleIntroduction" name="roleIntroduction"></textarea>
+                </div>
+                <div class="bot_btn">
+                    <input class="btn" value="保存" onclick="RoleSave()"/>
+                    <button class="btn btn1"><a href="role.html" target="right">返回</a></button>
+                </div>
+                <div class="clear"></div>
+            </div>
+        </div>
+    </form>
+</div>
+</body>
+<script type="text/javascript" src="js/jquery.js"></script>
+<script type="text/javascript" src="js/demo/jquery.ztree.core-3.5.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vue"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/jquery.form/4.3.0/jquery.form.min.js"></script>
+<script type="text/javascript" src="js/jquery.ztree.excheck-3.5.js"></script>
+<script type="text/javascript" src="js/jquery.ztree.exedit-3.5.js"></script>
+<script>
+    function RoleSave() {
+        $("#role_form").ajaxSubmit({
+            url:"/admin/insertRole",
+            type:"POST",
+            dataType:"text",
+            success:function (data) {
+                const json = $.parseJSON(data);
+                alert(json.msg);
+                if(json.code == 1){
+                    window.parent.location.reload();//刷新父页面
+                }
+            },
+            error:function () {
+
+            },
+            clearForm: false,
+            resetForm: false
+        },null,"text",null)
+        return false;
+    }
+</script>
+</html>

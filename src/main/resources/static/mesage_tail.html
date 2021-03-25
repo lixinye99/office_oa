@@ -1,0 +1,118 @@
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>消息详情</title>
+    <link href="css/tail.css" rel="stylesheet" type="text/css" />
+    <link href="css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+    <script type="text/javascript" src="js/jquery.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <script>
+        function change() {
+            var height01 = $(window).height();
+            $(".top").css('height', height01 - 35+"px");
+        }
+    </script>
+</head>
+
+<body style="border-radius: 8px" onload="change()">
+<div id="message_tail">
+    <div class="top">
+        <div>
+            <div class="top_out">
+                <table class="table" >
+                    <tbody>
+                    <tr>
+                        <td style="border-top: none" >消息标题：<i class="i_start"></i></td>
+                        <td  colspan = "6"  style="text-align: left;border-top: none"><input type="text" v-model="messageInfo.massageTitle" name ="name" minlength="2"  required id="tit"></td>
+                    </tr>
+                    <tr>
+                        <td>推送对象：<i class="i_start"></i></td>
+                        <td colspan="6">
+                            <div class="departList">
+                                按部门推送：
+                                <el-cascader style="width: 30%;border: 0px;"
+                                        placeholder="请输入部门名称"
+                                        :options="departList"
+                                        :props="props"
+                                        :show-all-levels="false"
+                                        collapse-tags
+                                        filterable
+                                        @change="handleChange">
+                                </el-cascader>
+                                按人员推送：
+                                <input style="width: 42.5%" type="text" v-model="pushUserName" name ="username" minlength="2" required id="mt_username">
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="line-height: 240px">消息内容：</td>
+                        <td colspan = "8" style="text-align: left"><textarea v-model="messageInfo.pushContent" id="editor" style="width: 100%;height: 240px"></textarea></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="bot_btn">
+            <input class="btn" value="发送" @click="saveMessage()"/>
+            <button class="btn btn1"><a href="message.html" target="right">返回</a></button>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="js/jquery.js"></script>
+<script src="js/date/js/laydate.js"></script>
+<script src="https://unpkg.com/vue/dist/vue.js"></script>
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<script>
+    const app = new Vue({
+        el:"#message_tail",
+        data:{
+            departList:[],
+            userInfoList:[],
+            pushObject:[],
+            pushUserName:"",
+            messageInfo:{
+                massageTitle:"",
+                pushContent:"",
+            },
+            props:{
+                multiple: true,
+            }
+        },
+        mounted:
+            function () {
+                axios.get('/getRolesAndDepart')
+                    .then(function (response) {
+                        app.$data.departList=response.data.data.departNameList;
+                    })
+            },
+        methods:{
+            handleChange(value) {
+                this.pushObject = [];
+                for(var i of value){
+                    this.pushObject.push(i[i.length-1])
+                }
+                console.log(this.pushObject)
+            },
+            saveMessage(){
+                let params = new URLSearchParams();
+                params.append("massageTitle",this.messageInfo.massageTitle)
+                params.append("pushContent",this.messageInfo.pushContent)
+                params.append("pushObject",this.pushObject)
+                params.append("pushUserName",this.pushUserName);
+                axios.post("/insertPushMessage",params)
+                    .then(function (response) {
+                        alert(response.data.msg);
+                        if(response.data.code == 1){
+                            window.parent.location.reload();//刷新父页面
+                        }
+                    })
+            }
+        }
+    })
+</script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+</html>

@@ -1,0 +1,124 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/info-mgt.css" />
+
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <style>
+        .layui-layer-title{background:url(images/righttitlebig.png) repeat-x;font-weight:bold;color:#46647e; border:1px solid #c1d3de;height: 33px;line-height: 33px;}
+        .tabe_bot label{width: 70px;text-align: right;font-size: 14px;font-weight: 900;color: #46647e}
+        .l_left{float: left}
+        .tabe_bot input,.tabe_bot  select{width: 180px;height: 30px;border-radius: 6px;margin:0 20px 0 0;border: none;border: 1px #ccc solid}
+        .tabe_btn{width: 60px;height: 30px;background-color: #68b86c;border: none;border-radius: 6px;color: #fff}
+    </style>
+    <title>部门管理</title>
+</head>
+
+<body>
+<div id="depart">
+    <div class="title"><h2>部门管理</h2></div>
+    <div class="query">
+        <div class="tabe_bot">
+            <div class="l_left"><label>部门名称：</label><input type="text" placeholder="请输入部门名称"></div>
+
+
+            <button class="tabe_btn ">查询</button>
+            <div class="clear"></div>
+        </div>
+    </div>
+    <div class="table-operate ue-clear">
+        <a href="#" class="add" id="addpart" @click="openlayer()">添加</a>
+        <a href="#" class="del" @click="del()">删除</a>
+        <a href="#" class="edit" @click="edit()">编辑</a>
+    </div>
+
+    <el-tree :data="DepartList" :props="defaultProps" @node-click="handleNodeClick"></el-tree>
+</div>
+
+
+</body>
+<script type="text/javascript" src="js/jquery.js"></script>
+<script src="js/layer_v2.1/layer/layer.js"></script>
+<script src="https://unpkg.com/vue/dist/vue.js"></script>
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<script type="text/javascript">
+   const app = new Vue({
+        el: '#depart',
+        data: {
+            DepartList:[],
+            departName:"",
+            departId:"",
+            defaultProps: {
+                children: 'children',
+                label: 'label'
+            }
+        },
+        mounted:
+            function(){
+                window.addEventListener('click',this.handleClick)
+                axios.get('/getRolesAndDepart')
+                    .then(function (response) {
+                        app.$data.DepartList=response.data.data.departNameList;
+                    })
+        },
+        methods:{
+            handleNodeClick(data) {
+                this.departName = data.label
+                this.departId = data.value
+            },
+            openlayer(){
+                window.departName = this.departName;
+                layer.open({
+                    type: 2,
+                    title: '添加信息',
+                    shadeClose: true,
+                    shade: 0.5,
+                    skin: 'layui-layer-rim',
+//            maxmin: true,
+                    closeBtn:1,
+                    area: ['60%', '80%'],
+                    shadeClose: true,
+                    closeBtn: 1,
+                    content: 'part_tail.html'
+                    //iframe的url
+                });
+            },
+            handleClick(){
+                this.departName = "";
+            },
+            del(){
+                axios.delete("/admin/deleteDepart/"+this.departId)
+                    .then(function(response){
+                        if (response.data.code == 1) {
+                            alert("删除成功！")
+                            window.location.reload();
+                        } else {
+                            alert(response.data.msg)
+                        }
+                    })
+            },
+            edit(){
+                window.departId = this.departId;
+                layer.open({
+                    type: 2,
+                    title: '添加信息',
+                    shadeClose: true,
+                    shade: 0.5,
+                    skin: 'layui-layer-rim',
+//            maxmin: true,
+                    closeBtn:1,
+                    area: ['60%', '80%'],
+                    shadeClose: true,
+                    closeBtn: 1,
+                    content: 'part_tail_change.html'
+                    //iframe的url
+                });
+            }
+        }
+    });
+</script>
+</html>

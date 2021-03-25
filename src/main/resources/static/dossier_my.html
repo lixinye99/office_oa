@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>个人档案</title>
+    <link rel="stylesheet" href="css/info-mgt.css" />
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <style>
+        *{margin: 0;padding: 0}
+        .l_left{float: left}
+        .clear{clear: both}
+        a{text-decoration: none}
+        .title{  background:url(images/righttitlebig.png) repeat-x; border:1px solid #c1d3de; overflow:visible;}
+        .title h2{line-height:33px; margin-left:7px; padding-left:22px; font-weight:bold; font-size:14px; font-family:'宋体'; color:#000000; background:url(images/titleico.png) no-repeat left center;}
+        .resource{border: 1px #c1d3de solid;border-top: none}
+        .resource_main_top .resource_box{width: 10%;height: 130px;margin:0 1%;box-sizing: border-box}
+        .resource_box a{display: block;width: 100%;height: 100%;cursor: pointer;border: 2px #ccc solid;box-shadow: 4px 4px 5px rgba(182,185,187,0.6)}
+        .resource_box a:hover{color:#c1d3de;border: 2px #c1d3de solid ;box-shadow: 4px 4px 5px rgba(193,211,222,0.8)}
+        .resource_main_top .el-checkbox:last-of-type {
+            position: relative;
+        }
+        .el-drawer__header{
+            font-size: 15px;
+            font-weight: bolder;
+        }
+        .resource_main_top .el-checkbox-group {
+            font-size: 12px;
+        }
+        .resource_main_top .el-checkbox{
+            position: relative;
+            top: 21px;
+        }
+        .resource_main_top .el-checkbox__label{
+            font-size: 0px;
+        }
+        .el-table__row{
+            font-size: 12px;
+        }
+        .el-drawer__body{
+            margin: 0 20px;
+        }
+        .img_div{
+            width: 100%;
+        }
+        .img_div img{
+            width: 100%;
+            height: 100px;
+
+        }
+        .img_p{
+            /*width: 100%;*/
+            text-align: center;
+        }
+        .img_p ul{list-style: none;text-align: center}
+        .img_p ul li{display:inline-block;padding-left: 5px;
+            padding-right: 5px;
+        }
+    </style>
+</head>
+<body onload="change()" onresize="change()">
+<div id="personal">
+    <div class="title"><h2>个人档案</h2></div>
+
+    <div class="table-operate ue-clear">
+        <a href="#" class="add"  onclick="openlayer()" id="addPup">添加</a>
+        <a href="javascript:;" class="del" @click="delFolder">删除</a>
+        <el-checkbox :indeterminate="isIndeterminate" v-model="checkAll" @change="handleCheckAllChange">全选</el-checkbox>
+    </div>
+
+    <div class="resource">
+        <div class="resource_main">
+            <div class="resource_main_top">
+                <el-checkbox-group  v-model="checkedCities" @change="handleCheckedCitiesChange">
+
+                    <div class="l_left resource_box" v-for="folder in fileFolderList">
+                        <el-checkbox :label="folder" :key="folder"></el-checkbox>
+                            <a href="#" @click="getFileInFolder(folder)">
+                                <div class="img_div">
+                                    <img src="images/myflie.png"/>
+                                </div>
+                                <p style="text-align: center;font-weight: bold">{{folder}}</p>
+                            </a>
+                    </div>
+                </el-checkbox-group>
+            </div>
+        </div>
+    </div>
+
+    <el-drawer
+            size="1000px"
+            :title="path"
+            :visible.sync="table"
+            direction="rtl"
+            size="50%">
+        <el-button @click="innerDrawer = true">上传文件到此文件夹</el-button>
+        <el-button @click="deleteFileInFolder">删除选中</el-button>
+
+
+        <el-table :data="gridData"
+                  @selection-change="handleSelectionChange">
+            <el-table-column type="selection" width="55"></el-table-column>
+            <el-table-column property="updateTime" label="更新时间" width="200"></el-table-column>
+            <el-table-column property="fileName" label="文件名称" width="200"></el-table-column>
+            <el-table-column property="fileSize" label="文件大小" width="80"></el-table-column>
+            <el-table-column property="downloadUrl" label="下载地址">
+                <template slot-scope="scope">
+                    <a :href="scope.row.downloadUrl"
+                       target="_blank"
+                       style="color: black">{{scope.row.downloadUrl}}
+                    </a>
+                </template>
+            </el-table-column>
+        </el-table>
+    </el-drawer>
+
+    <el-dialog
+            title="上传文件"
+            :visible.sync="innerDrawer"
+            width="30%"
+            height="350px">
+        <el-upload
+                class="upload-demo"
+                ref="upload"
+                action="/uploadFile"
+                multiple
+                :limit="5"
+                :auto-upload="false"
+                :http-request="uploadFile">
+            <el-button slot="trigger" size="small" type="primary">选取文件</el-button>
+            <el-button style="margin-left: 10px;" size="small" type="success" @click="submitUpload">上传到服务器</el-button>
+        </el-upload>
+    </el-dialog>
+
+    <div class="pup_div01" id="pup01">
+        <h5 class="h_style01">添加文件夹</h5>
+        <p>
+            <label class="label01">文件夹名称：</label><i class="i_start"></i>
+            <input type="text" v-model="inputFolderName" placeholder="请输入文件夹名称" class="pup_input"/>
+        </p>
+        <div class="p_line">
+            <p class="p_but">
+                <input type="button" value="保存" class="save_but" @click="createFolder"/>
+                <input type="button" value="关闭" class="close_but" id="close01"/>
+            </p>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="js/jquery.js"></script>
+<script src="https://unpkg.com/vue/dist/vue.js"></script>
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<script>
+    function change() {
+        var height = $(document).height();
+        $(".resource").css("height", height - 36 + "px");
+    }
+</script>
+<script>
+    $(function () {
+        $("#addPup").click(function () {
+            $("#pup01").show();
+        })
+        $("#close01").click(function () {
+            $("#pup01").hide();
+        })
+    })
+</script>
+<script>
+    const app = new Vue({
+        el: '#personal',
+        data: {
+            path:"",
+            formDate:"",
+            fileFolderList:[],
+            inputFolderName:"",
+            innerDrawer:false,
+            checkAll: false,
+            checkedCities: [],
+            isIndeterminate: true,
+            table: false,
+            multipleSelection:[],
+            gridData: [],
+            fileNameList:[]
+        },
+        mounted:
+            function(){
+                axios.get('/getFileFolder',{
+                    params:{
+                        path : "personal"
+                    }
+                }).then((response) => {
+                        if(response.data.code == 1){
+                            this.fileFolderList = response.data.data;
+                            if(this.fileFolderList.length == 0){
+                                alert("快来创建自己的文件夹吧！")
+                            }
+                        }else{
+                            alert(response.data.msg)
+                        }
+                    })
+            },
+        methods: {
+            handleCheckedCitiesChange(value) {
+                let checkedCount = value.length;
+                this.checkAll = checkedCount === this.fileFolderList.length;
+                this.isIndeterminate = checkedCount > 0 && checkedCount < this.fileFolderList.length;
+            },
+            handleCheckAllChange(val) {
+                this.checkedCities = val ? this.fileFolderList : []
+                this.isIndeterminate = false;
+            },
+            createFolder(){
+                let params = new URLSearchParams();
+                params.append("folderName",this.inputFolderName)
+                axios.post("/createFolder",params)
+                    .then(function (response) {
+                        alert(response.data.msg);
+                        if (response.data.code == 1) {
+                            window.location.reload();//刷新父页面
+                        }
+                    })
+            },
+            delFolder(){
+                let path = [];
+                this.checkedCities.forEach(function (value, index, array) {
+                    path.push("personal/"+value+"/")
+                })
+                $.ajax({
+                    url: '/deleteFolder',
+                    type: 'DELETE',
+                    data:{
+                        folderName:path,
+                    },
+                    traditional:true,
+                    dataType: 'json',
+                    success: function (result) {
+                        if (result.code == 1) {
+                            alert("删除成功！")
+                            window.location.reload();
+                        } else {
+                            alert(result.msg)
+                        }
+                    },
+                    error: function (err) {
+                    }
+                });
+            },
+            getFileInFolder(obj){
+                this.path = obj;
+                axios.get('/getFileInFolder',{
+                    params:{
+                        path : obj,
+                        type : "personal"
+                    }
+                }).then((response) => {
+                    if(response.data.code == 1){
+                        this.gridData = response.data.data;
+                        if(this.fileFolderList.length == 0){
+                            alert("这个文件夹中还没有文件哦！")
+                        }
+                    }else{
+                        alert(response.data.msg)
+                    }
+                })
+                this.table = true;
+            },
+            handleSelectionChange(val) {
+                var that = this;
+                this.multipleSelection = val;
+                this.multipleSelection.forEach(function (value, index, array) {
+                    that.fileNameList.push(value.fileName)
+                })
+            },
+            deleteFileInFolder(){
+                $.ajax({
+                    url: '/deleteFile',
+                    type: 'DELETE',
+                    data:{
+                        fileNameList:this.fileNameList,
+                        type: "personal",
+                        path: this.path
+                    },
+                    traditional:true,
+                    dataType: 'json',
+                    success: function (result) {
+                        if (result.code == 1) {
+                            alert("删除成功！")
+                            window.location.reload();
+                        } else {
+                            alert(result.msg)
+                        }
+                    },
+                    error: function (err) {
+                    }
+                });
+            },
+            submitUpload() {
+                this.formDate = new FormData()
+                this.$refs.upload.submit();
+                this.formDate.append("type","personal");
+                this.formDate.append('path', this.path);
+                let config = {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                }
+                axios.post("/uploadFile", this.formDate,config)
+                    .then(function (response) {
+                        alert(response.data.msg);
+                        if(response.data.code == 1){
+                            window.location.reload();//刷新父页面
+                        }
+                })
+            },
+            uploadFile(file){
+                this.formDate.append('file', file.file);
+            },
+
+        }
+    });
+</script>
+</html>

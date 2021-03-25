@@ -1,0 +1,107 @@
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>公告详情</title>
+    <link href="css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+    <link href="css/tail.css" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <script type="text/javascript" src="js/jquery.js"></script>
+    <script>
+        function change() {
+            var height01 = $(window).height();
+            $(".top").css('height', height01 - 35+"px");
+        }
+    </script>
+</head>
+
+<body style="border-radius: 8px" onload="change()">
+<div id="addNotice">
+    <div class="top">
+        <div class="top_out">
+            <table class="table" >
+                <tbody>
+                <tr>
+                    <td style="border-top: none">标题：<i class="i_start"></i> </td>
+                    <td  colspan = "6"  style="text-align: left;border-top: none"><input type="text" v-model="title" id="tit" name ="name" minlength="2"  required></td>
+                </tr>
+                <tr>
+                    <td style="line-height: 340px">发布内容：</td>
+                    <td colspan = "8" style="text-align: left">
+                        <div id="noticeContent"></div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="bot_btn">
+            <input  value="保存" class="btn" @click="saveNotice">
+            <button class="btn btn1"><a href="notice.html" target="right">返回</a></button>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="js/jquery.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/wangeditor@latest/dist/wangEditor.min.js"></script>
+<script src="https://unpkg.com/vue/dist/vue.js"></script>
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<script>
+</script>
+<script>
+    new Vue({
+        el:"#addNotice",
+        data:{
+            title:"",
+            content:""
+        },
+        mounted:
+        function(){
+            const E = window.wangEditor
+            const editor = new E('#noticeContent')
+            editor.config.uploadFileName = 'file';
+            editor.config.uploadImgServer = "/uploadImg"
+            editor.config.uploadImgHooks = {
+                // 上传图片之前
+                before: function(xhr) {
+                },
+                // 图片上传并返回了结果，图片插入已成功
+                success: function(xhr) {
+                },
+                // 图片上传并返回了结果，但图片插入时出错了
+                fail: function(xhr, editor, resData) {
+                },
+                // 上传图片出错，一般为 http 请求的错误
+                error: function(xhr, editor, resData) {
+                },
+                // 上传图片超时
+                timeout: function(xhr) {
+                },
+                // 图片上传并返回了结果，想要自己把图片插入到编辑器中
+                customInsert: function(insertImgFn, result) {
+                    // insertImgFn 可把图片插入到编辑器，传入图片 src ，执行函数即可
+                    insertImgFn(result.data[0].url)
+                }
+            }
+            editor.config.onchange = (html) => {
+                this.content = html
+            }
+            editor.create()
+        },
+        methods:{
+            saveNotice(){
+                let params = new URLSearchParams();
+                params.append("title",this.title)
+                params.append("content",this.content)
+                axios.post("/insertNoticeInfo",params)
+                    .then(function (response) {
+                        alert(response.data.msg);
+                        if(response.data.code == 1){
+                            window.parent.location.reload();//刷新父页面
+                        }
+                    })
+            }
+        }
+    })
+</script>
+</html>

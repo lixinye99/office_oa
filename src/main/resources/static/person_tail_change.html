@@ -1,0 +1,164 @@
+
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>用户详情</title>
+    <link href="css/tail.css" rel="stylesheet" type="text/css" />
+    <link href="css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+
+    <script type="text/javascript" src="js/jquery.js"></script>
+    <script>
+        function RecodeSave() {
+            let userInfo = parent.userInfo
+            $("#form_demo").ajaxSubmit({
+                url:"/admin/updateUser/"+userInfo.uid,
+                type:"PUT",
+                dataType:"JSON",
+                success:function (result) {
+                    alert(result.msg);
+                    if(result.code == 1){
+                        window.parent.location.reload();//刷新父页面
+                        parent.layer.close(index);//关闭弹出层
+                    }
+                },
+                error:function () {
+
+                },
+                clearForm: false,
+                resetForm: false
+            },null,"text",null)
+            return false;
+        }
+
+        function change() {
+            const height01 = $(window).height();
+            $(".top").css('height', height01 - 35+"px");
+        }
+    </script>
+</head>
+
+<body style="border-radius: 8px" onload="change()">
+<div>
+    <form id="form_demo" >
+        <div class="top" id="top">
+            <div>
+                <div class="top_out">
+                    <table class="table" >
+                        <tbody>
+
+                        <tr>
+                            <td style="border-top: none" >用户名：<i class="i_start"></i></td>
+                            <td  colspan = "6"  style="text-align: left;border-top: none">
+                                <input type="text"  name ="username" minlength="2"  id="recodeTit" v-model="userInfo.username" disabled>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>角色：</td>
+                            <td  style="text-align: left"><select name="role" id="role" v-model="userInfo.role">
+                                <option v-for="role in RoleList">
+                                    {{role}}
+                                </option>
+                            </select></td>
+                            <td>新的密码：</td>
+                            <td colspan = "3" style="text-align: left">
+                                <input type="text" name="password" type="password" class="long_text" id="password" v-model="password">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>所属部门：</td>
+                            <td  style="text-align: left">
+                                <el-cascader style="display: block"
+                                             v-model="value"
+                                             :options="DepartList"
+                                             :props="{ expandTrigger: 'hover' }"
+                                             ref="departName"
+                                             @change="handleChange"></el-cascader>
+                            </td>
+                            <td>绑定邮箱：</td>
+                            <td colspan = "3" style="text-align: left"><input type="email" class="long_text" name="email" id="email" v-model="userInfo.email"></td>
+                        </tr>
+                        <tr>
+                            <td style="line-height: 240px">备注：</td>
+                            <td colspan = "8" style="text-align: left"><textarea name="remark" id="remark" style="width: 100%;height: 240px" v-model="userInfo.remark"></textarea></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="bot_btn">
+                <input class="btn" value="修改" @click="RecodeSave()"/>
+                <button class="btn btn1"><a href="person.html" target="right">返回</a></button>
+            </div>
+        </div>
+    </form>
+</div>
+</body>
+<script type="text/javascript" src="js/jquery.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+<script src="https://unpkg.com/vue/dist/vue.js"></script>
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/jquery.form/4.3.0/jquery.form.min.js"></script>
+<script src="js/date/js/laydate.js"></script>
+<script>
+    const app = new Vue({
+        el:"#top",
+        data:{
+            value:[],
+            password:"",
+            chooseDepart:"",
+            DepartList:[],
+            RoleList:[],
+            userInfo:{
+                uid:"",
+                username:"",
+                password:"",
+                role:"普通员工",
+                departName:"",
+                email:"",
+                remark:""
+            },
+        },
+        mounted:function () {
+            axios.get('/getRolesAndDepart')
+                .then(function (response) {
+                    app.$data.DepartList=response.data.data.departNameList;
+                    app.$data.RoleList = response.data.data.roleNameZhList;
+                    app.$data.userInfo = parent.userInfo;
+                    if(parent.userInfo.departName.includes(',')){
+                        app.$data.value = parent.userInfo.departName.split(",");
+                    }else {
+                        app.$data.value = [parent.userInfo.departName]
+                    }
+                })
+        },
+        methods:{
+            handleChange() {
+                if (this.value.length != 0) {
+                    let arr = this.$refs['departName'].getCheckedNodes()[0].pathLabels
+                    this.chooseDepart = arr[arr.length-1]
+                }
+            },
+            RecodeSave() {
+                let arr = this.$refs['departName'].getCheckedNodes()[0].pathLabels
+                this.userInfo.departName = arr[arr.length-1]
+                let params = new URLSearchParams();
+                params.append("username",this.userInfo.username);
+                params.append("password",this.password);
+                params.append("role",this.userInfo.role);
+                params.append("departName",this.userInfo.departName);
+                params.append("email",this.userInfo.email);
+                params.append("remark",this.userInfo.remark);
+                axios.put("/admin/updateUser/"+ this.userInfo.uid,params).then(function (response) {
+                    alert(response.data.msg);
+                    if(response.data.code == 1){
+                        window.parent.location.reload();//刷新父页面
+                        parent.layer.close(index);//关闭弹出层
+                    }
+                })
+            }
+        }
+    });
+</script>
+</html>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.officeoa.mapper.MailListMapper">
+    <select id="queryAllMailListInfo" resultType="com.example.officeoa.model.Vo.MailInfoVo">
+        select u.uid,u.username,d.departName,r.roleNameZh,d.connectTelNum,u.email,u.remark
+        from userinfo u,departinfo d,role r,user_role ur
+        where u.uid = ur.uid and ur.rid = r.rid and u.departId = d.departId;
+    </select>
+</mapper>

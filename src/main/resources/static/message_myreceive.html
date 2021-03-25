@@ -1,0 +1,128 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link href="css/bootstrap.min.css" rel="stylesheet" type="text/css">
+    <link href="css/bootstrap-table.css" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/info-mgt.css" />
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <style>
+        .layui-layer-title{background:url(images/righttitlebig.png) repeat-x;font-weight:bold;color:#46647e; border:1px solid #c1d3de;height: 33px;line-height: 33px;}
+        .tabe_bot label{width: 70px;text-align: right;font-size: 14px;font-weight: 900;color: #46647e}
+        .l_left{float: left}
+        .tabe_bot input,.tabe_bot  select{width: 200px;height: 40px;border-radius: 6px;margin:0 20px 0 0;border: none;border: 1px #ccc solid;font-size: 14px}
+        .tabe_btn{width: 60px;height: 30px;background-color: #68b86c;border: none;border-radius: 6px;color: #fff;margin-top: 5px;margin-left: 20px;}
+    </style>
+    <title>消息推送</title>
+</head>
+
+<body onload="Mesload()">
+<div id="message">
+    <div class="title"><h2>已收到的消息</h2></div>
+    <div class="query">
+        <div class="tabe_bot">
+            <div class="l_left"><label>消息编号：</label><input type="text" placeholder="请输入编号" id="tit" v-model="mid"></div>
+            <div class="l_left"><label>发布人：</label><input type="text" placeholder="请输入姓名" id="person" v-model="pusher"></div>
+            <div class="l_left"><label>发送时间：</label>
+                <el-date-picker
+                        style="width: 200px"
+                        v-model="value2"
+                        align="right"
+                        type="date"
+                        placeholder="选择日期"
+                        :picker-options="pickerOptions">
+                </el-date-picker>
+            </div>
+            <button class="tabe_btn " @click="chooseMessage">查询</button>
+            <div class="clear"></div>
+        </div>
+    </div>
+    <div class="table-box">
+        <table id="table" class="table_style">
+        </table>
+    </div>
+    <div class="pagination ue-clear"></div>
+</div>
+</body>
+<script type="text/javascript" src="js/jquery.js"></script>
+<script src="js/bootstrap.min.js"></script>
+<script src="js/bootstrap-table.js"></script>
+<script src="js/bootstrap-table-zh-CN.min.js"></script>
+<script src="js/date/js/laydate.js"></script>
+<script src="js/message.js"></script>
+<script src="js/layer_v2.1/layer/layer.js"></script>
+<script src="https://unpkg.com/vue/dist/vue.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<script>
+    new Vue({
+        el: '#message',
+        data: {
+            value2: "",
+            props: {
+                multiple: true,
+            },
+            mid:"",
+            pusher:"",
+            pickerOptions: {
+                disabledDate(time) {
+                    return time.getTime() > Date.now();
+                },
+                shortcuts: [{
+                    text: '今天',
+                    onClick(picker) {
+                        picker.$emit('pick', new Date());
+                    }
+                }, {
+                    text: '昨天',
+                    onClick(picker) {
+                        const date = new Date();
+                        date.setTime(date.getTime() - 3600 * 1000 * 24);
+                        picker.$emit('pick', date);
+                    }
+                }, {
+                    text: '一周前',
+                    onClick(picker) {
+                        const date = new Date();
+                        date.setTime(date.getTime() - 3600 * 1000 * 24 * 7);
+                        picker.$emit('pick', date);
+                    }
+                }]
+            }
+        },
+        mounted:
+            function(){
+                axios.get("/getMyReceiveMessageInfo")
+                    .then(function (response) {
+                        if(response.data.code == 1){
+                            let MessageVoList = response.data.data;
+                            $('#table').bootstrapTable("load",MessageVoList);
+                        }else{
+                            alert(response.data.msg)
+                        }
+                    })
+            },
+        methods:{
+            chooseMessage(){
+                axios.get("/queryMessageByCondition",{
+                    params:{
+                        mid: this.mid,
+                        pusher: this.pusher,
+                        date: this.value2
+                    }
+                }).then(function (response) {
+                    if(response != null){
+                        if(response.data.code == 1){
+                            let userInfoVoList = response.data.data;
+                            $('#table').bootstrapTable("load",userInfoVoList);
+                        }else{
+                            alert(response.data.msg)
+                        }
+                    }
+                })
+            }
+        }
+    })
+</script>
+</html>
